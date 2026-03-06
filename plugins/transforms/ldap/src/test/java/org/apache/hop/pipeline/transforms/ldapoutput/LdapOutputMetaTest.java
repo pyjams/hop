@@ -20,8 +20,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.hop.core.Const;
 import org.apache.hop.core.HopEnvironment;
 import org.apache.hop.core.encryption.Encr;
@@ -35,7 +33,6 @@ import org.apache.hop.pipeline.transforms.loadsave.validator.ArrayLoadSaveValida
 import org.apache.hop.pipeline.transforms.loadsave.validator.BooleanLoadSaveValidator;
 import org.apache.hop.pipeline.transforms.loadsave.validator.IFieldLoadSaveValidator;
 import org.apache.hop.pipeline.transforms.loadsave.validator.IntLoadSaveValidator;
-import org.apache.hop.pipeline.transforms.loadsave.validator.ListLoadSaveValidator;
 import org.apache.hop.pipeline.transforms.loadsave.validator.StringLoadSaveValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,15 +66,7 @@ class LdapOutputMetaTest {
             "operationType",
             "oldDnFieldName",
             "newDnFieldName",
-            "deleteRDN",
-            "fields",
-            "referralType",
-            "derefAliasesType",
-            "protocol",
-            "useCertificate",
-            "trustStorePath",
-            "trustStorePassword",
-            "trustAllCertificates");
+            "deleteRDN");
 
     Map<String, String> getterMap =
         new HashMap<>() {
@@ -92,20 +81,12 @@ class LdapOutputMetaTest {
             put("port", "getPort");
             put("dnFieldName", "getDnField");
             put("failIfNotExist", "isFailIfNotExist");
-            put("searchBase", "getSearchBase");
+            put("searchBase", "getSearchBaseDN");
             put("multiValuedSeparator", "getMultiValuedSeparator");
             put("operationType", "getOperationType");
             put("oldDnFieldName", "getOldDnFieldName");
             put("newDnFieldName", "getNewDnFieldName");
             put("deleteRDN", "isDeleteRDN");
-            put("fields", "getFields");
-            put("referralType", "getReferralType");
-            put("derefAliasesType", "getDerefAliasesType");
-            put("protocol", "getProtocol");
-            put("useCertificate", "isUseCertificate");
-            put("trustStorePath", "getTrustStorePath");
-            put("trustStorePassword", "getTrustStorePassword");
-            put("trustAllCertificates", "isTrustAllCertificates");
           }
         };
 
@@ -122,20 +103,12 @@ class LdapOutputMetaTest {
             put("port", "setPort");
             put("dnFieldName", "setDnField");
             put("failIfNotExist", "setFailIfNotExist");
-            put("searchBase", "setSearchBase");
+            put("searchBase", "setSearchBaseDN");
             put("multiValuedSeparator", "setMultiValuedSeparator");
             put("operationType", "setOperationType");
             put("oldDnFieldName", "setOldDnFieldName");
             put("newDnFieldName", "setNewDnFieldName");
             put("deleteRDN", "setDeleteRDN");
-            put("fields", "setFields");
-            put("referralType", "setReferralType");
-            put("derefAliasesType", "setDerefAliasesType");
-            put("protocol", "setProtocol");
-            put("useCertificate", "setUseCertificate");
-            put("trustStorePath", "setTrustStorePath");
-            put("trustStorePassword", "setTrustStorePassword");
-            put("trustAllCertificates", "setTrustAllCertificates");
           }
         };
 
@@ -147,11 +120,7 @@ class LdapOutputMetaTest {
     attrValidatorMap.put("update", booleanArrayLoadSaveValidator);
     attrValidatorMap.put("updateLookup", stringArrayLoadSaveValidator);
     attrValidatorMap.put("updateStream", stringArrayLoadSaveValidator);
-    attrValidatorMap.put("operationType", new IntLoadSaveValidator(7));
-    attrValidatorMap.put("referralType", new IntLoadSaveValidator(2));
-    attrValidatorMap.put("derefAliasesType", new IntLoadSaveValidator(4));
-    attrValidatorMap.put(
-        "fields", new ListLoadSaveValidator<>(new LdapOutputFieldLoadSaveValidator(), 3));
+    attrValidatorMap.put("operationType", new IntLoadSaveValidator(5));
 
     Map<String, IFieldLoadSaveValidator<?>> typeValidatorMap = new HashMap<>();
 
@@ -172,30 +141,5 @@ class LdapOutputMetaTest {
   @Test
   void testSerialization() throws HopException {
     loadSaveTester.testSerialization();
-  }
-
-  public class LdapOutputFieldLoadSaveValidator
-      implements IFieldLoadSaveValidator<LdapOutputField> {
-    @Override
-    public LdapOutputField getTestObject() {
-      LdapOutputField rtn = new LdapOutputField();
-      rtn.setUpdateLookup(UUID.randomUUID().toString());
-      rtn.setUpdateStream(UUID.randomUUID().toString());
-      rtn.setUpdate(true);
-      return rtn;
-    }
-
-    @Override
-    public boolean validateTestObject(LdapOutputField testObject, Object actual) {
-      if (!(actual instanceof LdapOutputField)) {
-        return false;
-      }
-      LdapOutputField another = (LdapOutputField) actual;
-      return new EqualsBuilder()
-          .append(testObject.getUpdateLookup(), another.getUpdateLookup())
-          .append(testObject.getUpdateStream(), another.getUpdateStream())
-          .append(testObject.isUpdate(), another.isUpdate())
-          .isEquals();
-    }
   }
 }
