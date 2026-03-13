@@ -50,7 +50,7 @@ RUN git clone --depth 1 --branch ${HOP_GIT_TAG} ${HOP_GIT_REPO} hop
 ################################################################################
 # Stage 2a: Full Maven Builder (slower, complete build)
 ################################################################################
-FROM maven:3.9-eclipse-temurin-17 AS builder-full
+FROM maven:3.9-eclipse-temurin-21 AS builder-full
 ARG HOP_BUILD_FROM_SOURCE=local
 ARG MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
 ARG MAVEN_THREADS="1C"
@@ -309,7 +309,7 @@ ENTRYPOINT ["/bin/bash", "/opt/hop/run.sh"]
 ################################################################################
 # Stage 4b: Hop Web Image
 ################################################################################
-FROM tomcat:10-jdk17 AS web
+FROM tomcat:10-jdk21 AS web
 
 # Build arguments
 ARG HOP_UID=501
@@ -325,7 +325,6 @@ ENV HOP_OPTIONS="-XX:+AggressiveHeap -Dorg.eclipse.rap.rwt.resourceLocation=/tmp
 ENV HOP_PASSWORD_ENCODER_PLUGIN="Hop"
 ENV HOP_PLUGIN_BASE_FOLDERS=${CATALINA_HOME}/plugins
 ENV HOP_SHARED_JDBC_FOLDERS="${CATALINA_HOME}/jdbc-drivers"
-ENV HOP_WEB_THEME="light"
 ENV HOP_GUI_ZOOM_FACTOR=1.0
 ENV HOP_PROJECT_FOLDER=
 ENV HOP_PROJECT_CONFIG_FILE_NAME=project-config.json
@@ -341,7 +340,6 @@ ENV CATALINA_OPTS='${HOP_OPTIONS} \
   -DHOP_PASSWORD_ENCODER_PLUGIN="${HOP_PASSWORD_ENCODER_PLUGIN}" \
   -DHOP_PLUGIN_BASE_FOLDERS="${HOP_PLUGIN_BASE_FOLDERS}" \
   -DHOP_SHARED_JDBC_FOLDERS="${HOP_SHARED_JDBC_FOLDERS}" \
-  -DHOP_WEB_THEME="${HOP_WEB_THEME}" \
   -DHOP_GUI_ZOOM_FACTOR="${HOP_GUI_ZOOM_FACTOR}"'
 
 # Create Hop user
@@ -363,7 +361,7 @@ CMD ["/bin/bash", "/usr/local/tomcat/run-web.sh"]
 ################################################################################
 # Stage 4c: Hop REST Image
 ################################################################################
-FROM tomcat:10-jdk17 AS rest
+FROM tomcat:10-jdk21 AS rest
 
 # Environment variables
 ENV HOP_CONFIG_FOLDER=""
@@ -398,7 +396,7 @@ CMD ["/bin/bash", "/usr/local/tomcat/run-rest.sh"]
 ################################################################################
 # Stage 4d: Hop Dataflow Template Image
 ################################################################################
-FROM gcr.io/dataflow-templates-base/java17-template-launcher-base AS dataflow
+FROM gcr.io/dataflow-templates-base/java21-template-launcher-base AS dataflow
 
 ARG WORKDIR=/dataflow/template
 RUN mkdir -p ${WORKDIR}

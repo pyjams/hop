@@ -97,6 +97,9 @@ public class PropsUi extends Props {
   private static final String METRICS_PANEL_SHOW_UPDATED = "MetricsPanel.ShowUpdated";
   private static final String METRICS_PANEL_SHOW_REJECTED = "MetricsPanel.ShowRejected";
   private static final String METRICS_PANEL_SHOW_BUFFERS_INPUT = "MetricsPanel.ShowBuffersInput";
+  private static final String METRICS_PANEL_SHOW_DATA_VOLUME = "MetricsPanel.ShowDataVolume";
+  private static final String METRICS_PANEL_SHOW_DATA_VOLUME_IN = "MetricsPanel.ShowDataVolumeIn";
+  private static final String METRICS_PANEL_SHOW_DATA_VOLUME_OUT = "MetricsPanel.ShowDataVolumeOut";
 
   public static final int DEFAULT_MAX_EXECUTION_LOGGING_TEXT_SIZE = 2000000;
   private Map<RGB, RGB> contrastingColors;
@@ -653,6 +656,30 @@ public class PropsUi extends Props {
     setProperty(METRICS_PANEL_SHOW_BUFFERS_INPUT, show ? YES : NO);
   }
 
+  public boolean isMetricsPanelShowDataVolume() {
+    return YES.equalsIgnoreCase(getProperty(METRICS_PANEL_SHOW_DATA_VOLUME, YES));
+  }
+
+  public void setMetricsPanelShowDataVolume(boolean show) {
+    setProperty(METRICS_PANEL_SHOW_DATA_VOLUME, show ? YES : NO);
+  }
+
+  public boolean isMetricsPanelShowDataVolumeIn() {
+    return YES.equalsIgnoreCase(getProperty(METRICS_PANEL_SHOW_DATA_VOLUME_IN, YES));
+  }
+
+  public void setMetricsPanelShowDataVolumeIn(boolean show) {
+    setProperty(METRICS_PANEL_SHOW_DATA_VOLUME_IN, show ? YES : NO);
+  }
+
+  public boolean isMetricsPanelShowDataVolumeOut() {
+    return YES.equalsIgnoreCase(getProperty(METRICS_PANEL_SHOW_DATA_VOLUME_OUT, YES));
+  }
+
+  public void setMetricsPanelShowDataVolumeOut(boolean show) {
+    setProperty(METRICS_PANEL_SHOW_DATA_VOLUME_OUT, show ? YES : NO);
+  }
+
   public static void setLook(Widget widget) {
     int style = WIDGET_STYLE_DEFAULT;
     if (widget instanceof Table) {
@@ -685,12 +712,81 @@ public class PropsUi extends Props {
   }
 
   public static void setLook(final Widget widget, int style) {
+    if (EnvironmentUtils.getInstance().isWeb()) {
+      setLookOnWeb(widget, style);
+      return;
+    }
     if (OsHelper.isWindows()) {
       setLookOnWindows(widget, style);
     } else if (OsHelper.isMac()) {
       setLookOnMac(widget, style);
     } else {
       setLookOnLinux(widget, style);
+    }
+  }
+
+  /** Hop Web (RAP) specific look. Keeps web theme logic separate from OS-specific setLookOn*. */
+  protected static void setLookOnWeb(final Widget widget, int style) {
+    final GuiResource gui = GuiResource.getInstance();
+    Font font = gui.getFontDefault();
+    Color background = gui.getWidgetBackGroundColor();
+    Color foreground = gui.getColorBlack();
+
+    if (widget instanceof Shell shell) {
+      shell.setBackgroundMode(SWT.INHERIT_FORCE);
+      shell.setForeground(foreground);
+      shell.setBackground(background);
+      return;
+    }
+
+    switch (style) {
+      case WIDGET_STYLE_DEFAULT:
+        break;
+      case WIDGET_STYLE_FIXED:
+        font = gui.getFontFixed();
+        break;
+      case WIDGET_STYLE_TABLE:
+        background = gui.getWidgetBackGroundColor();
+        Table table = (Table) widget;
+        table.setHeaderBackground(background);
+        table.setHeaderForeground(gui.getColorBlack());
+        break;
+      case WIDGET_STYLE_TREE:
+        break;
+      case WIDGET_STYLE_TOOLBAR:
+        background = gui.getWidgetBackGroundColor();
+        break;
+      case WIDGET_STYLE_TAB:
+        CTabFolder tabFolder = (CTabFolder) widget;
+        tabFolder.setBorderVisible(true);
+        tabFolder.setTabHeight(28);
+        if (PropsUi.getInstance().isDarkMode()) {
+          tabFolder.setBackground(background);
+          tabFolder.setForeground(foreground);
+          tabFolder.setSelectionBackground(background);
+          tabFolder.setSelectionForeground(foreground);
+        }
+        break;
+      case WIDGET_STYLE_PUSH_BUTTON:
+        break;
+      default:
+        background = gui.getWidgetBackGroundColor();
+        font = null;
+        break;
+    }
+
+    if (font != null && !font.isDisposed() && (widget instanceof Control controlWidget)) {
+      controlWidget.setFont(font);
+    }
+    if (background != null
+        && !background.isDisposed()
+        && (widget instanceof Control controlWidget)) {
+      controlWidget.setBackground(background);
+    }
+    if (foreground != null
+        && !foreground.isDisposed()
+        && (widget instanceof Control controlWidget)) {
+      controlWidget.setForeground(foreground);
     }
   }
 

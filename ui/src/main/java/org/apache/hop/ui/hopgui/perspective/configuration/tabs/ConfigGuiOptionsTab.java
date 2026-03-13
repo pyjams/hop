@@ -23,6 +23,8 @@ import org.apache.hop.core.config.HopConfig;
 import org.apache.hop.core.gui.plugin.GuiPlugin;
 import org.apache.hop.core.gui.plugin.tab.GuiTab;
 import org.apache.hop.core.util.EnvUtil;
+import org.apache.hop.history.AuditManager;
+import org.apache.hop.history.AuditState;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.i18n.GlobalMessages;
 import org.apache.hop.i18n.LanguageChoice;
@@ -88,6 +90,10 @@ public class ConfigGuiOptionsTab {
   private Text wGridSize;
   private Label wlGridSize; // Label for grid size (for enable/disable)
   private Button wDarkMode;
+
+  /** Hop Web only: follow system light/dark mode; when true, Dark mode checkbox is disabled. */
+  private Button wWebFollowSystemTheme;
+
   private Button wShowCanvasGrid;
   private Button wHideViewport;
   private Button wUseDoubleClick;
@@ -104,6 +110,9 @@ public class ConfigGuiOptionsTab {
   private Button wMetricsPanelShowUpdated;
   private Button wMetricsPanelShowRejected;
   private Button wMetricsPanelShowBuffersInput;
+  private Button wMetricsPanelShowDataVolume;
+  private Button wMetricsPanelShowDataVolumeIn;
+  private Button wMetricsPanelShowDataVolumeOut;
   private Combo wDefaultLocale;
 
   private boolean isReloading = false; // Flag to prevent saving during reload
@@ -182,6 +191,20 @@ public class ConfigGuiOptionsTab {
         wMetricsPanelShowUpdated.setSelection(props.isMetricsPanelShowUpdated());
         wMetricsPanelShowRejected.setSelection(props.isMetricsPanelShowRejected());
         wMetricsPanelShowBuffersInput.setSelection(props.isMetricsPanelShowBuffersInput());
+        wMetricsPanelShowDataVolume.setSelection(props.isMetricsPanelShowDataVolume());
+        boolean dataVolumeVarEnabled =
+            Const.toBoolean(
+                HopGui.getInstance().getVariables().getVariable(Const.HOP_METRIC_DATA_VOLUME, "N"));
+        wMetricsPanelShowDataVolume.setEnabled(dataVolumeVarEnabled);
+        if (wMetricsPanelShowDataVolumeIn != null && !wMetricsPanelShowDataVolumeIn.isDisposed()) {
+          wMetricsPanelShowDataVolumeIn.setSelection(props.isMetricsPanelShowDataVolumeIn());
+          wMetricsPanelShowDataVolumeIn.setEnabled(dataVolumeVarEnabled);
+        }
+        if (wMetricsPanelShowDataVolumeOut != null
+            && !wMetricsPanelShowDataVolumeOut.isDisposed()) {
+          wMetricsPanelShowDataVolumeOut.setSelection(props.isMetricsPanelShowDataVolumeOut());
+          wMetricsPanelShowDataVolumeOut.setEnabled(dataVolumeVarEnabled);
+        }
       }
       // On macOS (and other non-Windows), dark mode follows system; sync from system so UI and
       // props match. In Web environment, isSystemDarkTheme() is not available.
@@ -193,6 +216,24 @@ public class ConfigGuiOptionsTab {
         props.setDarkMode(darkMode);
       }
       wDarkMode.setSelection(darkMode);
+      // Hop Web: load follow-system and dark mode from audit; disable Dark mode when follow system
+      if (EnvironmentUtils.getInstance().isWeb() && wWebFollowSystemTheme != null) {
+        boolean followSystem = true;
+        try {
+          AuditState themeState =
+              AuditManager.retrieveState(
+                  HopGui.getInstance().getLog(), "hop-web", "preferences", "theme");
+          if (themeState != null) {
+            followSystem = themeState.extractBoolean("followSystem", true);
+            darkMode = themeState.extractBoolean("darkMode", darkMode);
+            wDarkMode.setSelection(darkMode);
+          }
+        } catch (Exception ignored) {
+          // ignore
+        }
+        wWebFollowSystemTheme.setSelection(followSystem);
+        wDarkMode.setEnabled(!followSystem);
+      }
 
       // Reload global zoom
       String globalZoomFactor = Integer.toString((int) (props.getGlobalZoomFactor() * 100)) + '%';
@@ -284,7 +325,7 @@ public class ConfigGuiOptionsTab {
             margin);
     lastControl = wHideMenuBar;
 
-    // Dark mode (Windows only)
+    // Dark mode (Windows and Hop Web: user can toggle; macOS/other desktop follows system)
     wDarkMode =
         createCheckbox(
             wLookComp,
@@ -293,8 +334,28 @@ public class ConfigGuiOptionsTab {
             props.isDarkMode(),
             lastControl,
             margin);
-    wDarkMode.setEnabled(Const.isWindows());
+    wDarkMode.setEnabled(Const.isWindows() || EnvironmentUtils.getInstance().isWeb());
     lastControl = wDarkMode;
+
+    // Hop Web only: follow system dark mode (disables Dark mode checkbox)
+    if (EnvironmentUtils.getInstance().isWeb()) {
+      wWebFollowSystemTheme =
+          createCheckbox(
+              wLookComp,
+              "EnterOptionsDialog.WebFollowSystemTheme.Label",
+              "EnterOptionsDialog.WebFollowSystemTheme.ToolTip",
+              false,
+              lastControl,
+              margin);
+      wWebFollowSystemTheme.addListener(
+          SWT.Selection,
+          e -> {
+            if (wDarkMode != null && !wDarkMode.isDisposed()) {
+              wDarkMode.setEnabled(!wWebFollowSystemTheme.getSelection());
+            }
+          });
+      lastControl = wWebFollowSystemTheme;
+    }
 
     // General appearance section - using ExpandBar
     ExpandBar appearanceExpandBar = new ExpandBar(wLookComp, SWT.V_SCROLL);
@@ -846,6 +907,40 @@ public class ConfigGuiOptionsTab {
             margin);
     lastMetricsPanelControl = wMetricsPanelShowBuffersInput;
 
+    wMetricsPanelShowDataVolume =
+        createCheckbox(
+            metricsPanelContent,
+            "EnterOptionsDialog.MetricsPanel.ShowDataVolume.Label",
+            "EnterOptionsDialog.MetricsPanel.ShowDataVolume.ToolTip",
+            props.isMetricsPanelShowDataVolume(),
+            lastMetricsPanelControl,
+            margin);
+    lastMetricsPanelControl = wMetricsPanelShowDataVolume;
+    wMetricsPanelShowDataVolumeIn =
+        createCheckbox(
+            metricsPanelContent,
+            "EnterOptionsDialog.MetricsPanel.ShowDataVolumeIn.Label",
+            "EnterOptionsDialog.MetricsPanel.ShowDataVolumeIn.ToolTip",
+            props.isMetricsPanelShowDataVolumeIn(),
+            lastMetricsPanelControl,
+            margin);
+    lastMetricsPanelControl = wMetricsPanelShowDataVolumeIn;
+    wMetricsPanelShowDataVolumeOut =
+        createCheckbox(
+            metricsPanelContent,
+            "EnterOptionsDialog.MetricsPanel.ShowDataVolumeOut.Label",
+            "EnterOptionsDialog.MetricsPanel.ShowDataVolumeOut.ToolTip",
+            props.isMetricsPanelShowDataVolumeOut(),
+            lastMetricsPanelControl,
+            margin);
+    lastMetricsPanelControl = wMetricsPanelShowDataVolumeOut;
+    boolean dataVolumeVarEnabled =
+        Const.toBoolean(
+            HopGui.getInstance().getVariables().getVariable(Const.HOP_METRIC_DATA_VOLUME, "N"));
+    wMetricsPanelShowDataVolume.setEnabled(dataVolumeVarEnabled);
+    wMetricsPanelShowDataVolumeIn.setEnabled(dataVolumeVarEnabled);
+    wMetricsPanelShowDataVolumeOut.setEnabled(dataVolumeVarEnabled);
+
     ExpandItem metricsPanelItem = new ExpandItem(metricsPanelExpandBar, SWT.NONE);
     metricsPanelItem.setText(
         BaseMessages.getString(PKG, "EnterOptionsDialog.Section.MetricsPanel"));
@@ -1100,6 +1195,7 @@ public class ConfigGuiOptionsTab {
     props.setShowingMetricsAboveRunningTransforms(wMetricsOnTransforms.getSelection());
     // On macOS (and other non-Windows), dark mode follows system; persist system theme, not
     // checkbox. In Web environment, isSystemDarkTheme() is not available.
+    boolean previousDarkMode = props.isDarkMode();
     boolean darkMode;
     if (EnvironmentUtils.getInstance().isWeb() || Const.isWindows()) {
       darkMode = wDarkMode.getSelection();
@@ -1116,6 +1212,15 @@ public class ConfigGuiOptionsTab {
     props.setMetricsPanelShowUpdated(wMetricsPanelShowUpdated.getSelection());
     props.setMetricsPanelShowRejected(wMetricsPanelShowRejected.getSelection());
     props.setMetricsPanelShowBuffersInput(wMetricsPanelShowBuffersInput.getSelection());
+    boolean dataVolumeVarEnabled =
+        Const.toBoolean(
+            HopGui.getInstance().getVariables().getVariable(Const.HOP_METRIC_DATA_VOLUME, "N"));
+    props.setMetricsPanelShowDataVolume(
+        dataVolumeVarEnabled && wMetricsPanelShowDataVolume.getSelection());
+    props.setMetricsPanelShowDataVolumeIn(
+        dataVolumeVarEnabled && wMetricsPanelShowDataVolumeIn.getSelection());
+    props.setMetricsPanelShowDataVolumeOut(
+        dataVolumeVarEnabled && wMetricsPanelShowDataVolumeOut.getSelection());
 
     int defaultLocaleIndex = wDefaultLocale.getSelectionIndex();
     if (defaultLocaleIndex < 0 || defaultLocaleIndex >= GlobalMessages.localeCodes.length) {
@@ -1126,11 +1231,57 @@ public class ConfigGuiOptionsTab {
     String defaultLocale = GlobalMessages.localeCodes[defaultLocaleIndex];
     LanguageChoice.getInstance().setDefaultLocale(EnvUtil.createLocale(defaultLocale));
 
-    try {
-      HopConfig.getInstance().saveToFile();
-    } catch (Exception e) {
-      new ErrorDialog(
-          HopGui.getInstance().getShell(), "Error", "Error saving configuration to file", e);
+    if (EnvironmentUtils.getInstance().isWeb()) {
+      // Hop Web: store theme in audit (per-user); followSystem = follow OS/browser dark mode
+      boolean followSystem = wWebFollowSystemTheme != null && wWebFollowSystemTheme.getSelection();
+      darkMode = followSystem ? props.isDarkMode() : wDarkMode.getSelection();
+      props.setDarkMode(darkMode);
+
+      // Retrieve previous theme state from audit to detect change
+      boolean previousAuditFollowSystem = true;
+      boolean previousAuditDarkMode = darkMode;
+      try {
+        AuditState themeState =
+            AuditManager.retrieveState(
+                HopGui.getInstance().getLog(), "hop-web", "preferences", "theme");
+        if (themeState != null) {
+          previousAuditFollowSystem = themeState.extractBoolean("followSystem", true);
+          previousAuditDarkMode = themeState.extractBoolean("darkMode", previousAuditDarkMode);
+        }
+      } catch (Exception ignored) {
+        // ignore
+      }
+
+      java.util.Map<String, Object> themeStateMap = new java.util.HashMap<>();
+      themeStateMap.put("followSystem", Boolean.valueOf(followSystem));
+      themeStateMap.put("darkMode", Boolean.valueOf(darkMode));
+      AuditManager.storeState(
+          HopGui.getInstance().getLog(), "hop-web", "preferences", "theme", themeStateMap);
+
+      // Don't persist dark mode to HopConfig when in web (restore props value before save)
+      props.setDarkMode(previousDarkMode);
+      try {
+        HopConfig.getInstance().saveToFile();
+      } catch (Exception e) {
+        new ErrorDialog(
+            HopGui.getInstance().getShell(), "Error", "Error saving configuration to file", e);
+      }
+      props.setDarkMode(darkMode);
+
+      boolean themeChanged =
+          previousAuditFollowSystem != followSystem
+              || (!followSystem && previousAuditDarkMode != darkMode);
+      if (themeChanged) {
+        HopGui.getInstance()
+            .notifyWebThemePreferenceChanged(followSystem ? null : Boolean.valueOf(darkMode));
+      }
+    } else {
+      try {
+        HopConfig.getInstance().saveToFile();
+      } catch (Exception e) {
+        new ErrorDialog(
+            HopGui.getInstance().getShell(), "Error", "Error saving configuration to file", e);
+      }
     }
   }
 

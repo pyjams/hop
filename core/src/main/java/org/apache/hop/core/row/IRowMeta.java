@@ -61,8 +61,6 @@ import org.w3c.dom.Node;
  * <p><i>public List{@literal <}IValueMeta{@literal >} getValueMetaList()</i><br>
  * Returns a list of all field descriptions. The index of the field description matches the field
  * index in the row array.
- *
- * <p>
  */
 @JsonDeserialize(as = RowMeta.class)
 public interface IRowMeta extends Cloneable {
@@ -191,6 +189,17 @@ public interface IRowMeta extends Cloneable {
    * @throws HopValueException in case there was a problem converting the data.
    */
   byte[] getBinary(Object[] dataRow, int index) throws HopValueException;
+
+  /**
+   * Returns a fast estimate of the row size in bytes without serializing. Uses only the Java
+   * runtime types of the values in the row (e.g. {@code instanceof String}, {@code byte[]}); no
+   * IValueMeta or metadata is used. No allocation; suitable for high-throughput metrics. The result
+   * is an approximation.
+   *
+   * @param dataRow the data row
+   * @return estimated size in bytes, or null if dataRow is null (no data)
+   */
+  Long getRowSizeEstimate(Object[] dataRow);
 
   /**
    * Clone row.

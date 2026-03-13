@@ -46,8 +46,11 @@ import org.apache.hop.ui.core.widget.MetaSelectionLine;
 import org.apache.hop.ui.core.widget.TextVar;
 import org.apache.hop.ui.hopgui.HopGui;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
+import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
@@ -506,7 +509,7 @@ public class GuiCompositeWidgets {
     } else {
       // Old layout: checkbox next to label
       layoutControlBetweenLabelAndRightControl(
-          props, lastControl, label, control, null, useNewLayout);
+          props, lastControl, label, control, null, useNewLayout, true);
     }
 
     return control;
@@ -666,6 +669,18 @@ public class GuiCompositeWidgets {
       Control control,
       Control rightControl,
       boolean useNewLayout) {
+    layoutControlBetweenLabelAndRightControl(
+        props, lastControl, label, control, rightControl, useNewLayout, false);
+  }
+
+  private void layoutControlBetweenLabelAndRightControl(
+      PropsUi props,
+      Control lastControl,
+      Label label,
+      Control control,
+      Control rightControl,
+      boolean useNewLayout,
+      boolean checkBox) {
     FormData fdControl = new FormData();
     if (label != null) {
       if (useNewLayout) {
@@ -687,7 +702,12 @@ public class GuiCompositeWidgets {
         }
         // Attach to lastControl to create proper vertical spacing between widgets
         if (lastControl != null) {
-          fdControl.top = new FormAttachment(lastControl, PropsUi.getMargin());
+          if (checkBox) {
+            // Center on the label
+            fdControl.top = new FormAttachment(label, 0, SWT.CENTER);
+          } else {
+            fdControl.top = new FormAttachment(lastControl, PropsUi.getMargin());
+          }
         } else {
           fdControl.top = new FormAttachment(0, PropsUi.getMargin());
         }
@@ -1087,5 +1107,87 @@ public class GuiCompositeWidgets {
         enableWidget(sourceData, child, enabled);
       }
     }
+  }
+
+  public void setComboValues(String widgetId, String[] fieldNames) {
+    Control control = widgetsMap.get(widgetId);
+    if (control instanceof Combo combo) {
+      combo.setItems(fieldNames);
+    } else if (control instanceof ComboVar comboVar) {
+      comboVar.setItems(fieldNames);
+    }
+  }
+
+  /**
+   * This adds a scrolled composite on a new Composite that will contain all the widgets with the
+   * specified parent ID as its parent.
+   *
+   * @param parent The parent to add the scrolled composite to
+   * @param top The top control to layout with. Null means top of the parent.
+   * @param bottom The bottom control to layout with. Null means the bottom of the parent.
+   * @param guiParentId The GUI parent ID to use to look up the widgets to place on the composite.
+   * @param sourceData The source data to use to populate the data on the widgets.
+   */
+  public static GuiCompositeWidgets addScrolledComposite(
+      Composite parent,
+      IVariables variables,
+      Control top,
+      Control bottom,
+      String guiParentId,
+      Object sourceData) {
+    ScrolledComposite scrolledComposite =
+        new ScrolledComposite(parent, SWT.V_SCROLL | SWT.H_SCROLL);
+    scrolledComposite.setMinSize(SWT.DEFAULT, SWT.DEFAULT);
+
+    // The composite grabs the whole scrolled composite size
+    //
+    Composite composite = new Composite(scrolledComposite, SWT.NONE);
+    FormLayout compositeLayout = new FormLayout();
+
+    // Leave some room at the bottom and right for the scroll bars if they show up.
+    //
+    compositeLayout.marginRight = 2 * PropsUi.getFormMargin();
+    compositeLayout.marginBottom = 2 * PropsUi.getFormMargin();
+    composite.setLayout(compositeLayout);
+    FormData fdComposite = new FormData();
+    fdComposite.left = new FormAttachment(0, 0);
+    fdComposite.top = new FormAttachment(0, 0);
+    fdComposite.right = new FormAttachment(100, 0);
+    fdComposite.bottom = new FormAttachment(100, 0);
+    composite.setLayoutData(fdComposite);
+
+    // We add all the widgets...
+    //
+    GuiCompositeWidgets widgets = new GuiCompositeWidgets(variables);
+    widgets.createCompositeWidgets(sourceData, null, composite, guiParentId, null);
+    widgets.setWidgetsContents(sourceData, composite, guiParentId);
+    scrolledComposite.setContent(composite);
+
+    // Layout the scrolled composite.
+    //
+    FormData fdScrolled = new FormData();
+    if (top != null) {
+      fdScrolled.top = new FormAttachment(top, PropsUi.getMargin());
+    } else {
+      fdScrolled.top = new FormAttachment(0, 0);
+    }
+    if (bottom != null) {
+      fdScrolled.bottom = new FormAttachment(bottom, -2 * PropsUi.getMargin());
+    } else {
+      fdScrolled.bottom = new FormAttachment(100, 0);
+    }
+    fdScrolled.left = new FormAttachment(0, 0);
+    fdScrolled.right = new FormAttachment(100, 0);
+    scrolledComposite.setLayoutData(fdScrolled);
+
+    composite.pack();
+    Rectangle bounds = composite.getBounds();
+    scrolledComposite.setContent(composite);
+    scrolledComposite.setExpandHorizontal(true);
+    scrolledComposite.setExpandVertical(true);
+    scrolledComposite.setMinWidth(bounds.width);
+    scrolledComposite.setMinHeight(bounds.height);
+
+    return widgets;
   }
 }

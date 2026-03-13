@@ -17,11 +17,12 @@
 
 package org.apache.hop.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Date;
 import org.apache.commons.vfs2.FileObject;
@@ -30,25 +31,26 @@ import org.apache.hop.core.exception.HopFileException;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.vfs.HopVfs;
-import org.apache.hop.junit.rules.RestoreHopEnvironment;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.apache.hop.junit.rules.RestoreHopEnvironmentExtension;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 
-public class ResultFileTest {
+@ExtendWith(RestoreHopEnvironmentExtension.class)
+class ResultFileTest {
 
-  @ClassRule public static RestoreHopEnvironment env = new RestoreHopEnvironment();
+  @TempDir Path tempDirPath;
 
-  @Before
-  public void before() throws Exception {
+  @BeforeEach
+  void before() throws Exception {
     HopClientEnvironment.init();
   }
 
   @Test
-  public void testGetRow() throws HopFileException, FileSystemException {
-    File tempDir = new File(new TemporaryFolder().toString());
-    FileObject tempFile = HopVfs.createTempFile("prefix", "suffix", tempDir.toString());
+  void testGetRow() throws HopFileException, FileSystemException {
+    File tempDir = tempDirPath.toFile();
+    FileObject tempFile = HopVfs.createTempFile("prefix", "suffix", tempDir.getAbsolutePath());
     Date timeBeforeFile = Calendar.getInstance().getTime();
     ResultFile resultFile =
         new ResultFile(ResultFile.FILE_TYPE_GENERAL, tempFile, "myOriginParent", "myOrigin");
@@ -69,11 +71,10 @@ public class ResultFileTest {
     assertEquals("myOrigin", resultFile.getOrigin());
     assertEquals("myOriginParent", resultFile.getOriginParent());
     assertTrue(
-        "ResultFile timestamp is created in the expected window",
         timeBeforeFile.compareTo(resultFile.getTimestamp()) <= 0
-            && timeAfterFile.compareTo(resultFile.getTimestamp()) >= 0);
+            && timeAfterFile.compareTo(resultFile.getTimestamp()) >= 0,
+        "ResultFile timestamp is created in the expected window");
 
     tempFile.delete();
-    tempDir.delete();
   }
 }

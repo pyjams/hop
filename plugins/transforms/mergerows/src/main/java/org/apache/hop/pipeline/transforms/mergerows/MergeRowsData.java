@@ -17,6 +17,7 @@
 
 package org.apache.hop.pipeline.transforms.mergerows;
 
+import java.util.List;
 import org.apache.hop.core.IRowSet;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.pipeline.transform.BaseTransformData;
@@ -32,7 +33,13 @@ public class MergeRowsData extends BaseTransformData implements ITransformData {
   public int[] valueNrs;
 
   public IRowSet oneRowSet;
+  public IRowMeta oneRowMeta;
   public IRowSet twoRowSet;
+  public IRowMeta twoRowMeta;
+
+  public List<Integer> passThroughIndexes;
+  public Object[] oneCopy;
+  public Object[] twoCopy;
 
   public MergeRowsData() {
     super();

@@ -29,7 +29,7 @@
     <name>Hop GUI (RAP fragment)</name>
 
     <properties>
-        <rap.version>4.4.0</rap.version>
+        <rap.version>4.5.0</rap.version>
     </properties>
 
     <dependencies>
@@ -55,12 +55,6 @@
             <artifactId>hop-ui</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

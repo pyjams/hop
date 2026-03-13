@@ -97,29 +97,33 @@
     </distributionManagement>
 
     <properties>
-        <apache-beam.version>2.70.0</apache-beam.version>
+        <apache-beam.version>2.71.0</apache-beam.version>
         <assembly_appendId>false</assembly_appendId>
         <assembly_package-phase>package</assembly_package-phase>
         <attach-sources-phase>verify</attach-sources-phase>
         <azure-sdk-bom.version>1.2.26</azure-sdk-bom.version>
         <build.dependenciesDirectory>${project.build.directory}/dependency</build.dependenciesDirectory>
-        <byte-buddy.version>1.14.15</byte-buddy.version>
+        <byte-buddy.version>1.18.7</byte-buddy.version>
         <cyclonedx-maven-plugin.version>2.8.1</cyclonedx-maven-plugin.version>
         <hadoop.version>3.4.2</hadoop.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-        <jandex.version>3.2.2</jandex.version>
+        <jandex.version>3.5.3</jandex.version>
         <java-hamcrest.version>2.0.0.0</java-hamcrest.version>
-        <junit.version>5.10.2</junit.version>
+        <javadoc.failOnWarnings>false</javadoc.failOnWarnings>
+        <junit.version>6.0.3</junit.version>
         <license.bundleLicenseFile>META-INF/LICENSE.txt</license.bundleLicenseFile>
         <license.failOnLicenseCheck>false</license.failOnLicenseCheck>
         <license.inceptionYear>2020</license.inceptionYear>
         <license.licenseFile>LICENSE.txt</license.licenseFile>
         <license.licenseName>apache_v2</license.licenseName>
         <license.organizationName>Apache</license.organizationName>
-        <lombok.version>1.18.34</lombok.version>
+        <lombok.version>1.18.42</lombok.version>
         <maven-failsafe-plugin.forkCount>1</maven-failsafe-plugin.forkCount>
         <maven-failsafe-plugin.reuseForks>true</maven-failsafe-plugin.reuseForks>
-        <maven-surefire-plugin.argLine>-Duser.timezone=UTC
+        <maven-javadoc-plugin.version>3.10.0</maven-javadoc-plugin.version>
+        <maven-surefire-plugin.argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito-core.version}/mockito-core-${mockito-core.version}.jar
+            -Xshare:off
+            -Duser.timezone=UTC
             -Dfile.encoding=UTF-8
             -Duser.language=en -Duser.country=US
             --add-opens java.xml/jdk.xml.internal=ALL-UNNAMED
@@ -144,9 +148,9 @@
         <maven.build.timestamp.format>yyyy-MM-dd hh.mm.ss</maven.build.timestamp.format>
         <maven.compiler.source>${target.jdk.version}</maven.compiler.source>
         <maven.compiler.target>${target.jdk.version}</maven.compiler.target>
-        <mockito-core.version>5.12.0</mockito-core.version>
+        <mockito-core.version>5.22.0</mockito-core.version>
         <netty.version>4.2.8.Final</netty.version>
-        <objenesis.version>3.4</objenesis.version>
+        <objenesis.version>3.5</objenesis.version>
         <opentelemetry.version>1.56.0</opentelemetry.version>
         <org.eclipse.platform.version>3.132.0</org.eclipse.platform.version>
         <project.build.outputTimestamp>1770029303</project.build.outputTimestamp>
@@ -155,11 +159,27 @@
         <set-highest-basedir-phase>initialize</set-highest-basedir-phase>
         <site-repo-url>scpexe://people.apache.org/www/hop.apache.org/maven/</site-repo-url>
         <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
-        <target.jdk.version>17</target.jdk.version>
+        <spotless.skip>false</spotless.skip>
+        <target.jdk.version>21</target.jdk.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.21.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.21.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.21</version>
+            </dependency>
             <dependency>
                 <groupId>io.smallrye</groupId>
                 <artifactId>jandex</artifactId>
@@ -305,6 +325,15 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:-options</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <executions>
                     <execution>
@@ -399,6 +428,30 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-javadoc</id>
+                        <goals>
+                            <goal>javadoc</goal>
+                        </goals>
+                        <phase>verify</phase>
+                        <configuration>
+                            <show>public</show>
+                            <failOnError>true</failOnError>
+                            <failOnWarnings>${javadoc.failOnWarnings}</failOnWarnings>
+                            <doclint>all,-missing</doclint>
+                            <source>${maven.compiler.source}</source>
+                            <encoding>${project.build.sourceEncoding}</encoding>
+                            <docencoding>${project.reporting.outputEncoding}</docencoding>
+                            <maxmemory>512m</maxmemory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -419,6 +472,7 @@
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>2.43.0</version>
                 <configuration>
+                    <skip>${spotless.skip}</skip>
                     <java>
                         <includes>
                             <include>src/**/*.java</include>
@@ -460,6 +514,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
                 <configuration>
                     <show>public</show>
                 </configuration>
@@ -484,6 +539,17 @@
     </reporting>
 
     <profiles>
+        <profile>
+            <id>fast-build</id>
+            <properties>
+                <checkstyle.skip>true</checkstyle.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <rat.skip>true</rat.skip>
+                <skipTests>true</skipTests>
+                <spotless.skip>true</spotless.skip>
+            </properties>
+        </profile>
         <profile>
             <id>base</id>
             <activation>

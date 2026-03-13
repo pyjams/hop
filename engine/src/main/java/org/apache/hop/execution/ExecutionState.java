@@ -18,6 +18,7 @@
 
 package org.apache.hop.execution;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -89,5 +90,38 @@ public class ExecutionState {
     this.updateTime = new Date();
     this.childIds = new ArrayList<>();
     this.details = new HashMap<>();
+  }
+
+  @JsonIgnore
+  public boolean isRunning() {
+    if (statusDescription == null) {
+      return false;
+    }
+    return (statusDescription.toLowerCase().contains("running"))
+        || statusDescription.toLowerCase().contains("initializing");
+  }
+
+  @JsonIgnore
+  public boolean isFinished() {
+    return executionEndDate != null;
+  }
+
+  /**
+   * We haven't received an update in quite a while
+   *
+   * @return true if the state is stale
+   */
+  @JsonIgnore
+  public boolean isStale(long loggingInterval) {
+    if (isFinished()) {
+      // After finishing updates are no longer received.
+      return false;
+    }
+    if (updateTime == null) {
+      // We didn't get an update yet right after starting.
+      // It's too early to call it stale.
+      return false;
+    }
+    return System.currentTimeMillis() - updateTime.getTime() > loggingInterval;
   }
 }
