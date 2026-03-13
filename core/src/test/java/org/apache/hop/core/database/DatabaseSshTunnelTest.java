@@ -17,7 +17,7 @@
 
 package org.apache.hop.core.database;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,39 +26,28 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import org.apache.hop.core.HopClientEnvironment;
 import org.apache.hop.core.logging.ILogChannel;
 import org.apache.hop.core.logging.ILoggingObject;
 import org.apache.hop.core.logging.LogLevel;
 import org.apache.hop.core.variables.IVariables;
 import org.apache.hop.core.variables.Variables;
-import org.apache.hop.junit.rules.RestoreHopEnvironment;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class DatabaseSshTunnelTest {
-
-  @ClassRule public static RestoreHopEnvironment env = new RestoreHopEnvironment();
+class DatabaseSshTunnelTest {
 
   private final DatabaseMeta meta = mock(DatabaseMeta.class);
   private final ILoggingObject log = mock(ILoggingObject.class);
   private IVariables variables;
 
-  @BeforeClass
-  public static void setUpClass() throws Exception {
-    HopClientEnvironment.init();
-  }
-
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     when(log.getLogLevel()).thenReturn(LogLevel.NOTHING);
     variables = new Variables();
   }
 
   @Test
-  public void testCloseConnectionOnlyClosesSshTunnel() throws Exception {
+  void testCloseConnectionOnlyClosesSshTunnel() throws Exception {
     Connection conn = mockConnection();
     SshTunnelManager tunnelManager = mock(SshTunnelManager.class);
 
@@ -68,27 +57,24 @@ public class DatabaseSshTunnelTest {
 
     db.closeConnectionOnly();
 
-    // Verify tunnel was closed
     verify(tunnelManager).closeTunnel(any(ILogChannel.class));
-    // Verify JDBC connection was closed
     verify(conn).close();
   }
 
   @Test
-  public void testCloseConnectionOnlyWithoutTunnel() throws Exception {
+  void testCloseConnectionOnlyWithoutTunnel() throws Exception {
     Connection conn = mockConnection();
 
     Database db = new Database(log, variables, meta);
     db.setConnection(conn);
 
-    // Should not throw when no tunnel is configured
     db.closeConnectionOnly();
 
     verify(conn).close();
   }
 
   @Test
-  public void testDisconnectClosesSshTunnelViaCloseConnectionOnly() throws Exception {
+  void testDisconnectClosesSshTunnelViaCloseConnectionOnly() throws Exception {
     Connection conn = mockConnection();
     SshTunnelManager tunnelManager = mock(SshTunnelManager.class);
 
@@ -98,12 +84,11 @@ public class DatabaseSshTunnelTest {
 
     db.disconnect();
 
-    // Verify tunnel was closed (via closeConnectionOnly called from disconnect)
     verify(tunnelManager).closeTunnel(any(ILogChannel.class));
   }
 
   @Test
-  public void testTunnelManagerIsNulledAfterClose() throws Exception {
+  void testTunnelManagerIsNulledAfterClose() throws Exception {
     Connection conn = mockConnection();
     SshTunnelManager tunnelManager = mock(SshTunnelManager.class);
 
@@ -113,19 +98,17 @@ public class DatabaseSshTunnelTest {
 
     db.closeConnectionOnly();
 
-    // Verify sshTunnelManager field is nulled after close
     Field field = Database.class.getDeclaredField("sshTunnelManager");
     field.setAccessible(true);
     assertNull(field.get(db));
   }
 
   @Test
-  public void testNoTunnelOpenedWhenSshDisabled() throws Exception {
+  void testNoTunnelOpenedWhenSshDisabled() throws Exception {
     when(meta.isSshTunnelEnabled()).thenReturn(false);
 
     Database db = new Database(log, variables, meta);
 
-    // Verify no tunnel manager is set when SSH is not enabled
     Field field = Database.class.getDeclaredField("sshTunnelManager");
     field.setAccessible(true);
     assertNull(field.get(db));

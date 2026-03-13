@@ -17,51 +17,51 @@
 
 package org.apache.hop.core.database;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.apache.hop.core.exception.HopDatabaseException;
 import org.apache.hop.core.logging.ILogChannel;
 import org.apache.hop.core.variables.IVariables;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class SshTunnelManagerTest {
+class SshTunnelManagerTest {
 
   private SshTunnelManager tunnelManager;
   private ILogChannel log;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     tunnelManager = new SshTunnelManager();
     log = mock(ILogChannel.class);
   }
 
   @Test
-  public void testInitialState() {
+  void testInitialState() {
     assertFalse(tunnelManager.isOpen());
     assertEquals(0, tunnelManager.getLocalPort());
   }
 
   @Test
-  public void testCloseTunnelWhenNotOpen() {
-    // Should not throw when closing a tunnel that was never opened
+  void testCloseTunnelWhenNotOpen() {
     tunnelManager.closeTunnel(log);
     assertFalse(tunnelManager.isOpen());
   }
 
   @Test
-  public void testCloseTunnelMultipleTimes() {
-    // Should be safe to close multiple times
+  void testCloseTunnelMultipleTimes() {
     tunnelManager.closeTunnel(log);
     tunnelManager.closeTunnel(log);
     assertFalse(tunnelManager.isOpen());
   }
 
-  @Test(expected = org.apache.hop.core.exception.HopDatabaseException.class)
-  public void testOpenTunnelWithInvalidHost() throws Exception {
+  @Test
+  void testOpenTunnelWithInvalidHost() {
     IVariables variables = mock(IVariables.class);
     when(variables.resolve(anyString())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -75,12 +75,12 @@ public class SshTunnelManagerTest {
     when(databaseMeta.getDefaultDatabasePort()).thenReturn(3306);
     when(databaseMeta.isSshTunnelUsePrivateKey()).thenReturn(false);
 
-    // Should throw HopDatabaseException because host is unreachable
-    tunnelManager.openTunnel(variables, databaseMeta, log);
+    assertThrows(
+        HopDatabaseException.class, () -> tunnelManager.openTunnel(variables, databaseMeta, log));
   }
 
   @Test
-  public void testOpenTunnelWithInvalidHostCleansTunnel() {
+  void testOpenTunnelWithInvalidHostCleansTunnel() {
     IVariables variables = mock(IVariables.class);
     when(variables.resolve(anyString())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -100,7 +100,6 @@ public class SshTunnelManagerTest {
       // Expected
     }
 
-    // After a failed open, the tunnel should be cleaned up
     assertFalse(tunnelManager.isOpen());
   }
 }
